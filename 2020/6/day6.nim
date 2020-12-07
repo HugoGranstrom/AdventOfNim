@@ -6,7 +6,7 @@ type
 proc part1(): int =
   let data = readFile("day6.txt")
   for group in data.split("\n\n"):
-    var answers: HashSet[Answer]
+    var answers: set[Answer]
     for line in group.splitLines:
       for c in line:
         answers.incl c
