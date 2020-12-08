@@ -9,7 +9,8 @@ type
 proc newState(): VMState =
   VMState(counter: 0, acc: 0)
 
-let p = peg("instr", output: seq[(Opcode, int)]):
+let p = peg("instructions", output: seq[(Opcode, int)]):
+  instructions <- +(instr * ("\n" | !1))
   instr <- >op * Space * >arg:
     let num = parseInt($2)
     if $1 == "acc": output.add (acc, num)
@@ -20,8 +21,7 @@ let p = peg("instr", output: seq[(Opcode, int)]):
   arg <- ('+' | '-') * +Digit
 
 proc parseInstr(data: string): seq[(Opcode, int)] =
-  for line in data.splitLines:
-    assert p.match(line, result).ok
+  assert p.match(data, result).ok
 
 proc step(instr: (Opcode, int), state: VMState) =
   let op = instr[0]
