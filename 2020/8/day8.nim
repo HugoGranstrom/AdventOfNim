@@ -13,10 +13,8 @@ let p = peg("instructions", output: seq[(Opcode, int)]):
   instructions <- +(instr * ("\n" | !1))
   instr <- >op * Space * >arg:
     let num = parseInt($2)
-    if $1 == "acc": output.add (acc, num)
-    elif $1 == "jmp": output.add (jmp, num)
-    elif $1 == "nop": output.add (nop, num)
-    else: echo "Opcode not found: ", $1
+    let op = parseEnum[Opcode]($1)
+    output.add (op, num)
   op <- ("acc" | "jmp" | "nop")
   arg <- ('+' | '-') * +Digit
 
