@@ -47,36 +47,36 @@ proc part2() =
 block tests:
   proc testPart1() =
     let data = """28
-  33
-  18
-  42
-  31
-  14
-  46
-  20
-  48
-  47
-  24
-  23
-  49
-  45
-  19
-  38
-  39
-  11
-  1
-  32
-  25
-  35
-  8
-  17
-  7
-  9
-  4
-  2
-  34
-  10
-  3""".strip
+33
+18
+42
+31
+14
+46
+20
+48
+47
+24
+23
+49
+45
+19
+38
+39
+11
+1
+32
+25
+35
+8
+17
+7
+9
+4
+2
+34
+10
+3""".strip
     var jolts: seq[int] = @[0]
     for line in data.splitLines:
       jolts.add parseInt(line)
@@ -89,36 +89,36 @@ block tests:
 
   proc testPart2() =
     let data = """28
-  33
-  18
-  42
-  31
-  14
-  46
-  20
-  48
-  47
-  24
-  23
-  49
-  45
-  19
-  38
-  39
-  11
-  1
-  32
-  25
-  35
-  8
-  17
-  7
-  9
-  4
-  2
-  34
-  10
-  3""".strip
+33
+18
+42
+31
+14
+46
+20
+48
+47
+24
+23
+49
+45
+19
+38
+39
+11
+1
+32
+25
+35
+8
+17
+7
+9
+4
+2
+34
+10
+3""".strip
     var jolts: seq[int] = @[0]
     for line in data.splitLines:
       jolts.add parseInt(line)
