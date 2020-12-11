@@ -55,9 +55,7 @@ proc getSeatStatusPart2(map: seq[seq[char]], row, col: int): Nextstatus =
 
 proc findEquilibrium(mapInit: Map, seatStatus: (map: Map, row: int, col: int) -> Nextstatus): Map =
   result = mapInit
-  var lastMap: seq[seq[char]]
-  while result != lastMap:
-    lastMap = result
+  while true:
     var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
     for row in 0 .. result.high:
       for col in 0 .. result[0].high:
@@ -66,6 +64,7 @@ proc findEquilibrium(mapInit: Map, seatStatus: (map: Map, row: int, col: int) ->
         of empty: changeCordinates.add (row, col, 'L')
         of occupied: changeCordinates.add (row, col, '#')
         of unchanged: discard
+    if changeCordinates.len == 0: break # if no changes -> finished!
     for (row, col, newChar) in changeCordinates:
       result[row][col] = newChar
 
