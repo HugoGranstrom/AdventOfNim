@@ -1,7 +1,8 @@
-import std/strutils, std/enumerate, std/sequtils
+import std/strutils, std/enumerate, std/sugar
 
 type
   Nextstatus = enum occupied, empty, unchanged
+  Map = seq[seq[char]]
 
 proc loadMap(filename: string): seq[seq[char]] =
   let mapString = readFile(filename).strip
@@ -52,6 +53,22 @@ proc getSeatStatusPart2(map: seq[seq[char]], row, col: int): Nextstatus =
   elif nNeigh == 0 and map[row][col] == 'L': result = occupied
   else: result = unchanged
 
+proc findEquilibrium(mapInit: Map, seatStatus: (map: Map, row: int, col: int) -> Nextstatus): Map =
+  result = mapInit
+  var lastMap: seq[seq[char]]
+  while result != lastMap:
+    lastMap = result
+    var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
+    for row in 0 .. result.high:
+      for col in 0 .. result[0].high:
+        let nextStatus = seatStatus(result, row, col)
+        case nextStatus
+        of empty: changeCordinates.add (row, col, 'L')
+        of occupied: changeCordinates.add (row, col, '#')
+        of unchanged: discard
+    for (row, col, newChar) in changeCordinates:
+      result[row][col] = newChar
+
 proc countChar(map: seq[seq[char]], c: char): int =
   for i in 0 .. map.high:
     for j in 0 .. map[0].high:
@@ -59,71 +76,23 @@ proc countChar(map: seq[seq[char]], c: char): int =
 
 proc testPart1() =
   var map = loadMap("testPart1.txt")
-  var lastMap: seq[seq[char]]
-  while map != lastMap:
-    lastMap = map
-    var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
-    for row in 0 .. map.high:
-      for col in 0 .. map[0].high:
-        let nextStatus = getSeatStatusPart1(map, row, col)
-        case nextStatus
-        of empty: changeCordinates.add (row, col, 'L')
-        of occupied: changeCordinates.add (row, col, '#')
-        of unchanged: discard
-    for (row, col, newChar) in changeCordinates:
-      map[row][col] = newChar
+  map = findEquilibrium(map, getSeatStatusPart1)
   assert map == loadMap("testPart1Solution.txt")
 
 
 proc part1() =
   var map = loadMap("day11.txt")
-  var lastMap: seq[seq[char]]
-  while map != lastMap:
-    lastMap = map
-    var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
-    for row in 0 .. map.high:
-      for col in 0 .. map[0].high:
-        let nextStatus = getSeatStatusPart1(map, row, col)
-        case nextStatus
-        of empty: changeCordinates.add (row, col, 'L')
-        of occupied: changeCordinates.add (row, col, '#')
-        of unchanged: discard
-    for (row, col, newChar) in changeCordinates:
-      map[row][col] = newChar
+  map = findEquilibrium(map, getSeatStatusPart1)
   echo "Part 1: ", map.countChar('#'), " occupied seats"
 
 
 proc testPart2() =
   var map = loadMap("testPart1.txt")
-  var lastMap: seq[seq[char]]
-  while map != lastMap:
-    lastMap = map
-    var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
-    for row in 0 .. map.high:
-      for col in 0 .. map[0].high:
-        let nextStatus = getSeatStatusPart2(map, row, col)
-        case nextStatus
-        of empty: changeCordinates.add (row, col, 'L')
-        of occupied: changeCordinates.add (row, col, '#')
-        of unchanged: discard
-    for (row, col, newChar) in changeCordinates:
-      map[row][col] = newChar
+  map = findEquilibrium(map, getSeatStatusPart2)
 
 proc part2() =
   var map = loadMap("day11.txt")
-  var lastMap: seq[seq[char]]
-  while map != lastMap:
-    lastMap = map
-    var changeCordinates: seq[(int, int, char)] # stores coordinates of positions that should change
-    for row in 0 .. map.high:
-      for col in 0 .. map[0].high:
-        let nextStatus = getSeatStatusPart2(map, row, col)
-        case nextStatus
-        of empty: changeCordinates.add (row, col, 'L')
-        of occupied: changeCordinates.add (row, col, '#')
-        of unchanged: discard
-    for (row, col, newChar) in changeCordinates:
-      map[row][col] = newChar
+  map = findEquilibrium(map, getSeatStatusPart2)
   echo "Part 2: ", map.countChar('#'), " occupied seats"
 
 when isMainModule:
