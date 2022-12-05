@@ -37,6 +37,19 @@ proc part1(input: string) =
 
   echo "Part 1: ", answer.join("")
 
+proc part2(input: string) =
+  var (stack, instructions) = readInput(input)
+  for (start, to, amount) in instructions:
+    let movedCrates = stack[start][^amount .. ^1]
+    stack[start].setLen(stack[start].len - amount)
+    stack[to].add movedCrates
+
+  var answer: seq[char]
+  for s in stack:
+    answer.add s[^1]
+
+  echo "Part 2: ", answer.join("")
+
 let testInput = """
     [D]    
 [N] [C]    
@@ -51,3 +64,4 @@ move 1 from 1 to 2"""
 when isMainModule:
   let input = readFile("input.txt")
   part1(input)
+  part2(input)
