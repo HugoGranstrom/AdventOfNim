@@ -40,7 +40,6 @@ proc parseInput(input: string): seq[tuple[dir: Vec, steps: int]] =
 proc moveRope(rope: var seq[Vec], instr: tuple[dir: Vec, steps: int], history: var seq[Vec]) =
   var temp = rope # temp keep track of the old positions
   for am in 0 ..< instr.steps:
-    # move first
     rope[0] = rope[0] + instr.dir
     for i in 1 .. rope.high:
       let head = rope[i-1]
@@ -53,6 +52,7 @@ proc moveRope(rope: var seq[Vec], instr: tuple[dir: Vec, steps: int], history: v
         elif head.y == tail.y:
           rope[i] = tail + Vec(y: 0, x: sgn(head.x - tail.x))
         else:
+          # Loop over all diagonals
           var closestDist = 100
           for x in [-1, 1]:
             for y in [-1, 1]:
@@ -61,11 +61,6 @@ proc moveRope(rope: var seq[Vec], instr: tuple[dir: Vec, steps: int], history: v
               if d < closestDist:
                 rope[i] = neigh
                 closestDist = d
-          #let dir = head - prevHead
-          #rope[i] = tail + dir 
-          #let closest = closestNeighbour(head, tail)
-          #rope[i] = closest
-        #rope[i] = temp[i-1]
     
     temp = rope # copy
     history.add rope[^1]
@@ -78,8 +73,6 @@ proc part1(input: string) =
   for step in steps:
     rope.moveRope(step, tailHistory)
 
-  #echo tailHistory
-
   let countTab = tailHistory.toCountTable
 
   echo "Part 1: ", countTab.len
@@ -90,7 +83,7 @@ proc part2(input: string) =
   let steps = parseInput(input)
   for step in steps:
     rope.moveRope(step, tailHistory)
-  #echo tailHistory
+
   let countTab = tailHistory.toCountTable
 
   echo "Part 2: ", countTab.len
