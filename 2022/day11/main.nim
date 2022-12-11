@@ -11,7 +11,7 @@ type
   ModNumber = object
     mods: seq[int]
 
-proc initModNumber(n: int, maxMod: int): ModNumber =
+proc initModNumber(n: int, maxMod: int = 19): ModNumber =
   result.mods = newSeq[int](maxMod + 1)
   for i in 1 .. maxMod:
     result.mods[i] = n mod i
@@ -19,24 +19,37 @@ proc initModNumber(n: int, maxMod: int): ModNumber =
 proc `+`(m: ModNumber, x: int): ModNumber =
   result = m # copy
   for i in 1 .. m.mods.high:
-    result.mods[i] = result.mods[i] + x mod i #?
+    result.mods[i] = (result.mods[i] + x) mod i
+
+proc `+`(m: ModNumber, x: ModNumber): ModNumber =
+  result = m # copy
+  for i in 1 .. m.mods.high:
+    result.mods[i] = (result.mods[i] + x.mods[i]) mod i
 
 proc `*`(m: ModNumber, x: int): ModNumber =
   result = m # copy
   for i in 1 .. m.mods.high:
-    result.mods[i] = result.mods[i] * x mod i #?
+    result.mods[i] = result.mods[i] * x mod i
+
+proc `*`(m: ModNumber, x: ModNumber): ModNumber =
+  result = m # copy
+  for i in 1 .. m.mods.high:
+    result.mods[i] = result.mods[i] * x.mods[i] mod i
 
 
 proc `$`(m: Monkey): string =
   &"Count: {m.count}, Items: {m.items.reversed}"
 
-proc createOp(op: proc (a, b: int): int, aaaaa: string): proc (old: int): int =
-  result = proc (old: int): int =
+proc createOp[T](op: proc (a, b: T): T, aaaaa: string): proc (old: T): T =
+  result = proc (old: T): T =
     let value =
       if aaaaa.strip() == "old":
         old
       else:
-        parseInt(aaaaa.strip())
+        when T is ModNumber:
+          parseInt(aaaaa.strip()).initModNumber
+        else:
+          parseInt(aaaaa.strip())
     return op(old, value)
 
 proc parseInput[T](input: string): seq[Monkey[T]] =
@@ -45,16 +58,19 @@ proc parseInput[T](input: string): seq[Monkey[T]] =
     for line in monkeyBlock.splitLines:
       if line.strip().startsWith("Starting items:"):
         for i in line.split(":")[1].split(","):
-          monkey.items.insert(parseInt(i.strip), 0)
+          when T is int:
+            monkey.items.insert(parseInt(i.strip), 0)
+          else:
+            monkey.items.insert(parseInt(i.strip).initModNumber, 0)
       elif line.strip().startsWith("Operation:"):
         let operation = line.split("=")[^1]
         if '*' in operation:
           let spl = operation.split("*")
-          let f = (x, y: int) => x*y
+          let f = (x, y: T) => x * y
           monkey.op = createOp(f, spl[1])
         elif "+" in operation:
           let spl = operation.split("+")[1]
-          let f = (x, y: int) => x+y
+          let f = (x, y: T) => x+y
           monkey.op = createOp(f, spl)
         else:
           assert false, "Invalid op found: " & line
@@ -90,7 +106,7 @@ proc part1(input: string) =
   counts.sort(Descending)
   echo "Part 1: ", counts[0] * counts[1]
 
-proc runPart2(monkeys: var seq[Monkey]) =
+#[ proc runPart2(monkeys: var seq[Monkey]) =
   for i in 0 .. monkeys.high:
     for j in 0 .. monkeys[i].items.high:
       let initialWorry = monkeys[i].items.pop()
@@ -102,8 +118,8 @@ proc runPart2(monkeys: var seq[Monkey]) =
       monkeys[i].count += 1
       echo &"{i} throwing {opWorry} to {throwIndex}"
 
-#[ proc part2(input: string) =
-  var monkeys = parseInput(input)
+proc part2(input: string) =
+  var monkeys = parseInput[ModNumber](input)
   #echo monkeys
   for i in 0 ..< 20:
     monkeys.runPart2()
@@ -113,7 +129,7 @@ proc runPart2(monkeys: var seq[Monkey]) =
   echo "Part 2: ", counts[0] * counts[1] ]#
 
 when isMainModule:
-  let input = readFile "testinput.txt"
+  let input = readFile "input.txt"
   part1(input)
   #part2(input)
   
