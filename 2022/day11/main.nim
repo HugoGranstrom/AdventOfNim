@@ -11,7 +11,7 @@ type
   ModNumber = object
     mods: seq[int]
 
-proc initModNumber(n: int, maxMod: int = 19): ModNumber =
+proc initModNumber(n: int, maxMod: int = 23): ModNumber =
   result.mods = newSeq[int](maxMod + 1)
   for i in 1 .. maxMod:
     result.mods[i] = n mod i
@@ -36,6 +36,7 @@ proc `*`(m: ModNumber, x: ModNumber): ModNumber =
   for i in 1 .. m.mods.high:
     result.mods[i] = result.mods[i] * x.mods[i] mod i
 
+proc `$`(m: ModNumber): string = "ModNumber"
 
 proc `$`(m: Monkey): string =
   &"Count: {m.count}, Items: {m.items.reversed}"
@@ -106,30 +107,31 @@ proc part1(input: string) =
   counts.sort(Descending)
   echo "Part 1: ", counts[0] * counts[1]
 
-#[ proc runPart2(monkeys: var seq[Monkey]) =
+proc runPart2(monkeys: var seq[Monkey]) =
   for i in 0 .. monkeys.high:
     for j in 0 .. monkeys[i].items.high:
       let initialWorry = monkeys[i].items.pop()
       let opWorry = monkeys[i].op(initialWorry)
       #let reliefWorry = opWorry div 3
-      let cond = opWorry mod monkeys[i].test == 0
+      let cond = opWorry.mods[monkeys[i].test] == 0 #opWorry mod monkeys[i].test == 0
       let throwIndex = monkeys[i].actions[cond.int]
       monkeys[throwIndex].items.insert(opWorry, 0)
       monkeys[i].count += 1
-      echo &"{i} throwing {opWorry} to {throwIndex}"
+      #echo &"{i} throwing {opWorry} to {throwIndex}"
 
 proc part2(input: string) =
   var monkeys = parseInput[ModNumber](input)
   #echo monkeys
-  for i in 0 ..< 20:
+  for i in 0 ..< 10000:
     monkeys.runPart2()
   #echo monkeys
   var counts = monkeys.mapIt(it.count)
+  echo counts
   counts.sort(Descending)
-  echo "Part 2: ", counts[0] * counts[1] ]#
+  echo "Part 2: ", counts[0] * counts[1]
 
 when isMainModule:
   let input = readFile "input.txt"
   part1(input)
-  #part2(input)
+  part2(input)
   
