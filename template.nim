@@ -15,7 +15,8 @@ let testInput = """
 """
 
 when isMainModule:
-  let input = readFile("input.txt")
+  let realInput = readFile("input.txt")
+  let input = testInput
   let answer1 = part1(input)
   echo "Part 1: ", answer1
   let answer2 = part2(input)
