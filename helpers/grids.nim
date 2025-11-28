@@ -63,7 +63,10 @@ proc `[]=`*[T](grid: var Grid[T], coord: GridCoordinate, val: T) =
   let coord = grid.normalizeCoord(coord)
   grid.data[coord.y][coord.x] = val
 
-proc parseCharGrid*[T](s: string, parseFunc: (c: char) -> T = (c: char) => c): Grid[T] =
+proc defaultGridParseFunc*[T](c: char): T =
+  T(c)
+
+proc parseCharGrid*[T](s: string, parseFunc: proc(c: char): T {.nimcall.} = defaultGridParseFunc[T]): Grid[T] =
   let lines = s.splitLines
   let height = lines.len
   let width = lines[0].len
@@ -111,7 +114,7 @@ proc `[]=`*[T](grid: var SparseGrid[T], coord: GridCoordinate, val: T) =
   let coord = grid.normalizeCoord(coord)
   grid.data[coord] = val
 
-proc parseCharSparseGrid*[T](s: string, parseFunc: (c: char) -> T): SparseGrid[T] =
+proc parseCharSparseGrid*[T](s: string, parseFunc: proc(c: char): T {.nimcall.} = defaultGridParseFunc[T]): SparseGrid[T] =
   let lines = s.splitLines
   let height = lines.len
   let width = lines[0].len
@@ -151,7 +154,7 @@ if isMainModule:
         #
   """.strip
 
-    grid = parseCharGrid[char](gridStr, (c: char) => c)
+    grid = parseCharGrid[char](gridStr)
     echo grid
 
   if false:
