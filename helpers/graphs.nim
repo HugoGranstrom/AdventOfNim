@@ -1,4 +1,4 @@
-import std / [tables, sequtils, sets, sugar, strutils, hashes, strformat]
+import std / [tables, sequtils, sets, sugar, strutils, hashes, strformat, lists]
 
 import ./grids
 
@@ -14,12 +14,17 @@ type
   Graph*[T] = ref object
     nodes*: HashSet[GraphNode[T]]
 
+  GraphCostFunction*[T] = proc(src: GraphNode[T], dest: GraphNode[T]): float {.nimcall.}
+
   Path*[T] = ref object
-    steps*: seq[GraphNode[T]]
-    # cost?
+    steps*: SinglyLinkedList[GraphNode[T]]
+    cost*: float
 
 proc `$`*[T](path: Path[T]): string =
   $path[]
+
+proc cmp*[T](p1, p2: Path[T]): int =
+  cmp(p1.score, p2.score)
 
 proc `$`*[T](node: GraphNode[T]): string =
   let connections = collect(newSeq):
@@ -27,7 +32,7 @@ proc `$`*[T](node: GraphNode[T]): string =
       $n.value
 
   let links = connections.join(" | ")
-  fmt"{node.value} -> [{links}]"
+  fmt"{node.value}"
 
 proc `$`*[T](graph: Graph[T]): string =
   let nodes = collect(newSeq):
@@ -93,6 +98,10 @@ template findNodesWith*[T](graph: Graph[T], op: untyped): seq[GraphNode[T]] =
       result.add node
   result
 
+### Path Finding
+
+proc defaultStepCostFunction*[T](src: GraphNode[T], dest: GraphNode[T]): float =
+  1
 
 # proc firstPop[T](l: var seq[T]): T =
 #   assert l.len > 0
@@ -113,17 +122,37 @@ template findNodesWith*[T](graph: Graph[T], op: untyped): seq[GraphNode[T]] =
 
 # How do we specify the cost function? Take two (neighbouring) nodes as input and output a value?
 # In the simplest case it always returns 1 to keep 
+# How to efficiently return new list? It will be maaaany seq allocation. Linked lists?
 
-proc internalDepthSearch*[T]() =
-  discard
 
-proc defaultStepCostFunction*[T](src: GraphNode[T], dest: GraphNode[T]): float =
-  1
+proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var HashSet[GraphNode[T]], stepCostFunction: GraphCostFunction[T]): Path[T] =
+  visits.incl startNode
+  if startNode == endNode:
+    return Path[T](steps: [endNode].toSinglyLinkedList, cost: 0)
+  var paths: seq[Path[T]]
+  for neigh in startNode.links:
+    if neigh in visits: continue
+    let subpath = internalDepthSearch(graph, neigh, endNode, visits, stepCostFunction)
+    if not subpath.isNil:
+      paths.add subpath
+  
+  if paths.len == 0:
+    # dead end
+    return nil
 
-proc depthPath*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: proc(src: GraphNode[T], dest: GraphNode[T]): float {.nimcall.} = defaultStepCostFunction[T]): Path[T] =
+  var path = min(paths)
+  let nextNode = path.steps.head.value
+  let cost = stepCostFunction(startNode, nextNode)
 
-  echo stepCostFunction(startNode, endNode)
-  Path[T]()
+  path.cost += cost
+  path.steps.prepend(startNode)
+
+  path
+
+
+proc depthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
+  var visits = initHashSet[GraphNode[T]]()
+  internalDepthSearch(graph, startNode, endNode, visits, stepCostFunction)
 
 # some way of iterating through all nodes
 # djikstraPath(startPos: GraphNode, endPos: GraphNode): seq[GraphNode]
@@ -153,7 +182,7 @@ if isMainModule:
     let endNode = graph.findNodeWith(it.value.value == 'a')
     echo startNode, " ", endNode
 
-    let path = depthPath(graph, startNode, endNode)
+    let path = depthSearch(graph, startNode, endNode)
     echo path
 
   if false:
