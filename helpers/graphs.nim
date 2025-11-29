@@ -1,4 +1,4 @@
-import std / [tables, sequtils, sets, sugar, strutils, hashes, strformat, lists]
+import std / [tables, sequtils, sets, sugar, strutils, hashes, strformat, deques]
 
 import ./grids
 
@@ -135,13 +135,13 @@ proc defaultCostEstimationFunction*[T](src: GraphNode[T], dest: GraphNode[T]): f
 
 
 proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var seq[GraphNode[T]], currentDepth: int, maxDepth: int, stepCostFunction: GraphCostFunction[T]): Path[T] =
-  if currentDepth >= maxDepth:
+  if currentDepth > maxDepth:
     return nil
   if startNode == endNode:
     return Path[T](steps: @[endNode], cost: 0)
 
   visits.add startNode
-  var paths: seq[Path[T]]
+  var bestPath: Path[T] = nil
   for neigh in startNode.links:
     if neigh in visits: continue
     var subpath = internalDepthSearch(graph, neigh, endNode, visits, currentDepth+1, maxDepth, stepCostFunction)
@@ -149,16 +149,13 @@ proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], 
       let nextNode = subpath.steps[^1]
       let cost = stepCostFunction(startNode, nextNode)
       subpath.cost += cost
-      subpath.steps.add startNode
-      paths.add subpath
+      if bestPath.isNil or subpath < bestPath:
+        subpath.steps.add startNode
+        bestPath = subpath
 
   discard visits.pop()
 
-  if paths.len == 0:
-    # dead end
-    return nil
-
-  min(paths)
+  bestPath
 
 proc depthSearchExhaustive*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
   var visits = newSeq[GraphNode[T]]()
@@ -166,11 +163,39 @@ proc depthSearchExhaustive*[T](graph: Graph[T], startNode, endNode: GraphNode[T]
 
 proc iterativeDeepingSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], maxDepth: int = -1, deepeningStep: int = 1, stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
   let maxDepth = if maxDepth < 0: graph.nodes.len else: maxDepth
-  for depth in countUp(1, maxDepth, 1):
-    var visits = newSeq[GraphNode[T]]()
+  echo "Max depth: ", maxDepth
+  var visits = newSeq[GraphNode[T]]()
+  for depth in countUp(1, maxDepth, deepeningStep):
+    echo &"Trying max depth: {depth}"
     let path = internalDepthSearch(graph, startNode, endNode, visits, 0, depth, stepCostFunction)
     if not path.isNil:
       return path
+
+proc iterativeDeepeningAStar*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T], costEstimationFunction: GraphCostFunction[T] = defaultCostEstimationFunction[T]): Path[T] =
+  discard
+
+proc breadthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
+  var queue = initDeque[GraphNode[T]]()
+  var visited = initHashset[GraphNode[T]]()
+  var parentMap: Table[GraphNode[T], GraphNode[T]]
+  visited.incl startNode
+  queue.addLast(startNode)
+  while queue.len > 0:
+    let node = queue.popFirst()
+    if node == endNode:
+      var parent = parentMap[node]
+      var path = Path[T](steps: @[node], cost: stepCostFunction(parent, node))
+      while parent != startNode:
+        let child = parent
+        parent = parentMap[child]
+        path.cost += stepCostFunction(parent, child)
+        path.steps.add parent
+      return path
+    for neigh in node.links:
+      if neigh in visited: continue
+      visited.incl neigh
+      parentMap[neigh] = node
+      queue.addLast(neigh)
 
 
 proc dijkstraSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T], costEstimationFunction: GraphCostFunction[T] = defaultCostEstimationFunction[T]): Path[T] =
@@ -197,7 +222,7 @@ if isMainModule:
   if true:
     let grid = parseCharGrid[char]("""
 #### ##
-#x y   
+#x#y   
 #   #a#
 #######
 """.strip, (c: char) => c)
@@ -209,7 +234,7 @@ if isMainModule:
     let endNode = graph.findNodeWith(it.value.value == 'a')
     #echo startNode, " ", endNode
 
-    let path = iterativeDeepingSearch(graph, startNode, endNode)
+    let path = breadthSearch(graph, startNode, endNode)
     echo path
 
   if false:
