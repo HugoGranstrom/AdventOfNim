@@ -24,13 +24,13 @@ proc manhattan*(g: GridCoordinate): int =
   abs(g.x) + abs(g.y)
 
 template defineGridCoordinateOp(op: untyped) =
-  proc `op`(g1, g2: GridCoordinate): GridCoordinate =
+  proc `op`*(g1, g2: GridCoordinate): GridCoordinate =
     (x: op(g1.x, g2.x), y: op(g1.y, g2.y))
 
-  proc `op`(g1: GridCoordinate, val: int): GridCoordinate =
+  proc `op`*(g1: GridCoordinate, val: int): GridCoordinate =
     (x: op(g1.x, val), y: op(g1.y, val))
 
-  proc `op`(val: int, g1: GridCoordinate): GridCoordinate =
+  proc `op`*(val: int, g1: GridCoordinate): GridCoordinate =
     op(g1, val)
 
 defineGridCoordinateOp(`+`)
