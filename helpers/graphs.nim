@@ -17,14 +17,17 @@ type
   GraphCostFunction*[T] = proc(src: GraphNode[T], dest: GraphNode[T]): float {.nimcall.}
 
   Path*[T] = ref object
-    steps*: SinglyLinkedList[GraphNode[T]]
+    steps*: seq[GraphNode[T]]
     cost*: float
 
 proc `$`*[T](path: Path[T]): string =
-  $path[]
+  if path.isNil: "nil" else: $path[]
 
-proc cmp*[T](p1, p2: Path[T]): int =
-  cmp(p1.score, p2.score)
+#proc cmp*[T](p1, p2: Path[T]): int =
+#  cmp(p1.score, p2.score)
+
+proc `<`*[T](p1, p2: Path[T]): bool =
+  (p1.cost, p2.steps.len) < (p2.cost, p2.steps.len)
 
 proc `$`*[T](node: GraphNode[T]): string =
   let connections = collect(newSeq):
@@ -33,6 +36,9 @@ proc `$`*[T](node: GraphNode[T]): string =
 
   let links = connections.join(" | ")
   fmt"{node.value}"
+
+proc `$`*[T](node: GraphNode[GridValue[T]]): string =
+  $node.value.value
 
 proc `$`*[T](graph: Graph[T]): string =
   let nodes = collect(newSeq):
@@ -103,6 +109,9 @@ template findNodesWith*[T](graph: Graph[T], op: untyped): seq[GraphNode[T]] =
 proc defaultStepCostFunction*[T](src: GraphNode[T], dest: GraphNode[T]): float =
   1
 
+proc defaultCostEstimationFunction*[T](src: GraphNode[T], dest: GraphNode[T]): float =
+  1
+
 # proc firstPop[T](l: var seq[T]): T =
 #   assert l.len > 0
 #   result = l[0]
@@ -125,34 +134,52 @@ proc defaultStepCostFunction*[T](src: GraphNode[T], dest: GraphNode[T]): float =
 # How to efficiently return new list? It will be maaaany seq allocation. Linked lists?
 
 
-proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var HashSet[GraphNode[T]], stepCostFunction: GraphCostFunction[T]): Path[T] =
-  visits.incl startNode
+proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var seq[GraphNode[T]], currentDepth: int, maxDepth: int, stepCostFunction: GraphCostFunction[T]): Path[T] =
+  if currentDepth >= maxDepth:
+    return nil
   if startNode == endNode:
-    return Path[T](steps: [endNode].toSinglyLinkedList, cost: 0)
+    return Path[T](steps: @[endNode], cost: 0)
+
+  visits.add startNode
   var paths: seq[Path[T]]
   for neigh in startNode.links:
     if neigh in visits: continue
-    let subpath = internalDepthSearch(graph, neigh, endNode, visits, stepCostFunction)
+    var subpath = internalDepthSearch(graph, neigh, endNode, visits, currentDepth+1, maxDepth, stepCostFunction)
     if not subpath.isNil:
+      let nextNode = subpath.steps[^1]
+      let cost = stepCostFunction(startNode, nextNode)
+      subpath.cost += cost
+      subpath.steps.add startNode
       paths.add subpath
-  
+
+  discard visits.pop()
+
   if paths.len == 0:
     # dead end
     return nil
 
-  var path = min(paths)
-  let nextNode = path.steps.head.value
-  let cost = stepCostFunction(startNode, nextNode)
+  min(paths)
 
-  path.cost += cost
-  path.steps.prepend(startNode)
+proc depthSearchExhaustive*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
+  var visits = newSeq[GraphNode[T]]()
+  internalDepthSearch(graph, startNode, endNode, visits, 0, graph.nodes.len, stepCostFunction)
 
-  path
+proc iterativeDeepingSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], maxDepth: int = -1, deepeningStep: int = 1, stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
+  let maxDepth = if maxDepth < 0: graph.nodes.len else: maxDepth
+  for depth in countUp(1, maxDepth, 1):
+    var visits = newSeq[GraphNode[T]]()
+    let path = internalDepthSearch(graph, startNode, endNode, visits, 0, depth, stepCostFunction)
+    if not path.isNil:
+      return path
 
 
-proc depthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T]): Path[T] =
-  var visits = initHashSet[GraphNode[T]]()
-  internalDepthSearch(graph, startNode, endNode, visits, stepCostFunction)
+proc dijkstraSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCostFunction: GraphCostFunction[T] = defaultStepCostFunction[T], costEstimationFunction: GraphCostFunction[T] = defaultCostEstimationFunction[T]): Path[T] =
+  discard
+
+# add an option whether to do an exhaustive search or return when we find the first path
+# add iterative deepening by adding a maxdepth parameter to internalDepthSearch
+# add costEstimation (A*)
+# add the current cost
 
 # some way of iterating through all nodes
 # djikstraPath(startPos: GraphNode, endPos: GraphNode): seq[GraphNode]
@@ -170,7 +197,7 @@ if isMainModule:
   if true:
     let grid = parseCharGrid[char]("""
 #### ##
-#x#y   
+#x y   
 #   #a#
 #######
 """.strip, (c: char) => c)
@@ -180,9 +207,9 @@ if isMainModule:
     echo "----------------"
     let startNode = graph.findNodeWith(it.value.value == 'x')
     let endNode = graph.findNodeWith(it.value.value == 'a')
-    echo startNode, " ", endNode
+    #echo startNode, " ", endNode
 
-    let path = depthSearch(graph, startNode, endNode)
+    let path = iterativeDeepingSearch(graph, startNode, endNode)
     echo path
 
   if false:
