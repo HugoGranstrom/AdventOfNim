@@ -1,4 +1,4 @@
-include std / prelude
+import batteries
 import std / [strscans, algorithm, math]
 
 proc parseInput(input: string): seq[int] =
