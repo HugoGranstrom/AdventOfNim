@@ -42,6 +42,7 @@ proc `<`*[T](p1, p2: Path[T]): bool =
   (p1.cost, p2.steps.len) < (p2.cost, p2.steps.len)
 
 proc `$`*[T](node: GraphNode[T]): string =
+  if node.isNil: return "nil"
   let connections = collect(newSeq):
     for n in node.links:
       $n.value
@@ -49,8 +50,8 @@ proc `$`*[T](node: GraphNode[T]): string =
   let links = connections.join(" | ")
   fmt"{node.value}"
 
-proc `$`*[T](node: GraphNode[GridValue[T]]): string =
-  $node.value.value
+#proc `$`*[T](node: GraphNode[GridValue[T]]): string =
+#  $node.value.value
 
 proc `$`*[T](graph: Graph[T]): string =
   let nodes = collect(newSeq):
@@ -66,6 +67,17 @@ proc add*[T](graph: var Graph[T], node: GraphNode[T], bidirectional: bool = fals
   if bidirectional:
     for neighbour in node.links:
       neighbour.links.incl node
+
+proc reverse*[T](graph: Graph[T]): Graph[T] =
+  result = initGraph[T]()
+  let newNodesMap: Table[GraphNode[T], GraphNode[T]] = collect:
+    for oldNode in graph.nodes:
+      {oldNode: GraphNode[T](value: oldNode.value)}
+  for oldNode in graph.nodes:
+    for neigh in oldNode.links:
+      newNodesMap[neigh].links.incl newNodesMap[oldNode]
+
+  result.nodes = newNodesMap.values.toSeq.toHashSet
 
 proc fromTable*[T](t: Table[T, seq[T]], bidirectional=false): Graph[T] =
   result = initGraph[T]()
@@ -232,7 +244,7 @@ proc aStarSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCost
       # If it is marked as stale, it means it has been updated replaced with a new one, so skip it
       continue
     if current.node == endNode:
-      echo &"aStarSearch took {nIterations} iterations"
+      #echo &"aStarSearch took {nIterations} iterations"
       return reconstructPath(parentMap, startNode, endNode, stepCost)
     for neighNode in current.node.links:
       let neighGCost = current.gCost + stepCost(current.node, neighNode)
