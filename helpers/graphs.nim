@@ -263,6 +263,22 @@ proc aStarSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], stepCost
           wrapperMap[neighNode] = newNeigh
           queue.push(newNeigh)
 
+proc isConnected*[T](graph: Graph[T], node1, node2: GraphNode[T]): bool =
+  not graph.aStarSearch(node1, node2).isNil
+
+proc isConnectedCached*[T](graph: Graph[T], node1, node2: GraphNode[T], cache: var Table[(GraphNode[T], GraphNode[T]), bool]): bool =
+  for origin in @[node1] & node1.links.toSeq:
+    for destination in @[node2] & node2.links.toSeq:
+      for key in [(origin, destination), (destination, origin)]:
+        if key in cache:
+          #echo "cache hit"
+          let val = cache[key]
+          cache[(node1, node2)] = val
+          return val
+  #echo "cache miss"
+  let val = graph.isConnected(node1, node2)
+  cache[(node1, node2)] = val
+  return val
 
 # add an option whether to do an exhaustive search or return when we find the first path
 # add iterative deepening by adding a maxdepth parameter to internalDepthSearch
