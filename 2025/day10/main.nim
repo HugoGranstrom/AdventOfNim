@@ -49,22 +49,48 @@ proc solve1(m: var Machine): int =
         return solutionLen
   assert false, "Didn't find a solution"
 
+iterator optimizedProduct(cache: var seq[int], s: openarray[int], repeat: int): lent seq[int] =
+  var counters = newSeq[int](repeat)
+  cache = newSeq[int](repeat)
+  block outer:
+    while true:
+      for x in cache.mitems:
+        x = 0
+      for i, cnt in counters:
+        cache[i] = s[cnt]
+      yield cache
+
+      var i = repeat - 1
+      while true:
+        inc counters[i]
+        if counters[i] == s.len:
+          counters[i] = 0
+          dec i
+        else: break
+        if i < 0:
+          break outer
+
 proc solve2(m: var Machine): int =
   var bestSolution: seq[int]
   var bestScore = int.high
-  for maxValue in countup(1, 10000):
+  var solutionFound = false
+  for maxValue in countup(1, 100):
     echo "Checking solutions of length: ", maxValue
-    let options = (0 .. maxValue).toSeq
-    var solutionFound = false
-    for candidate in options.product(m.buttons.len):
-      if m.verifySolution2(candidate):
+    var options = (0 .. min(bestScore, maxValue)).toSeq
+    var cache: seq[int]
+    for candidate in cache.optimizedProduct(options, m.buttons.len):
+      #for candidate in product(options, m.buttons.len):
+      #echo candidate
+      if sum(candidate) < bestScore and m.verifySolution2(candidate):
         let score = sum(candidate)
         if score < bestScore:
           bestScore = score
           bestSolution = candidate
           solutionFound = true
-      if solutionFound:
+          echo "Found solution: ", bestScore
+      if solutionFound and maxValue > bestScore:
         return bestScore
+  #return bestScore
   assert false, "No solution was found"
 
 proc parseInput(input: string): seq[Machine] =
@@ -91,6 +117,7 @@ proc part1(input: string): int =
 proc part2(input: string): int =
   var machines = parseInput(input)
   for i, machine in machines.mpairs:
+    #if i == 0: continue
     echo i
     result += solve2(machine)
 
