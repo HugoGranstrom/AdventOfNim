@@ -15,7 +15,8 @@ proc part1(input: string): int =
   let startNode = graph.findNodeWith(it.value == "you")
   let endNode = graph.findNodeWith(it.value == "out")
   var visited: seq[GraphNode[string]]
-  let paths = graph.allPaths(startNode, endNode, visited)
+  var cache: Table[GraphNode[string], seq[Path[string]]]
+  let paths = graph.allPaths(startNode, endNode, visited, cache)
   paths.len
 
 proc part2(input: string): int =
@@ -24,18 +25,18 @@ proc part2(input: string): int =
   let dac = graph.findNodeWith(it.value == "dac")
   let fft = graph.findNodeWith(it.value == "fft")
   let endNode = graph.findNodeWith(it.value == "out")
-  #let paths = graph.allPaths(svr, endNode).filterIt(dac in it.steps and fft in it.steps)
   var visited: seq[GraphNode[string]]
-  let svr2fft = graph.allPaths(svr, fft, visited).len
+  var cache: Table[GraphNode[string], seq[Path[string]]]
+  let svr2fft = graph.allPaths(svr, fft, visited, cache).len
   echo "svr2fft: ", svr2fft
-  let dac2out = graph.allPaths(dac, endNode, visited).len
+  cache.reset()
+  let dac2out = graph.allPaths(dac, endNode, visited, cache).len
   echo "dac2out: ", dac2out
-  let fft2dac = graph.allPaths(fft, dac, visited).len
+  cache.reset()
+  let fft2dac = graph.allPaths(fft, dac, visited, cache).len
   echo "fft2dac: ", fft2dac
-  # Add memoization with nodes that definetly don't lead anywhere?
-  # It makes more sense to store nodes that actaully lead to the goal!
+  svr2fft * fft2dac * dac2out
 
-  max([svr2fft, fft2dac, dac2out])
 
 let testInput = """
 aaa: you hhh

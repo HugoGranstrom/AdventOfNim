@@ -161,6 +161,26 @@ proc defaultCostEstimationFunction*[T](src: GraphNode[T], dest: GraphNode[T]): f
 # In the simplest case it always returns 1 to keep 
 # How to efficiently return new list? It will be maaaany seq allocation. Linked lists?
 
+proc allPaths*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var seq[GraphNode[T]], cache: var Table[GraphNode[T], seq[Path[T]]]): seq[Path[T]] =
+  if startNode == endNode:
+    return @[Path[T](steps: @[endNode], cost: 0)]
+
+  if startNode in cache:
+    result = cache[startNode]
+  else:
+    visits.add startNode
+    for neigh in startNode.links:
+      if neigh in visits: continue
+      result.add graph.allPaths(neigh, endNode, visits, cache)
+    discard visits.pop()
+    for p in result.mitems:
+      p.steps.add startNode
+      p.cost += 1
+    # add to cache
+    cache[startNode] = result
+    
+
+
 
 proc internalDepthSearch*[T](graph: Graph[T], startNode, endNode: GraphNode[T], visits: var seq[GraphNode[T]], currentDepth: int, maxDepth: int, stepCost: GraphCostFunction[T]): Path[T] =
   if currentDepth > maxDepth:
